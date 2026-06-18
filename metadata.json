@@ -1,0 +1,6 @@
+{
+  "name": "AI 교육 만족도 분석 대시보드",
+  "description": "교육 종료 후 설문결과를 인공지능(AI)으로 심층 분석하여 강사, 교육내용, 운영, 시설 등 영역별 통계와 다차원 인사이트를 실시간으로 시각화하고 위험신호 및 핵심 의견 원문을 효율적으로 제공하는 운영자용 지능형 분석 시스템입니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

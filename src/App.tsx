@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { 
   defaultCourseData, 
   defaultKeywordVerbatims, 
@@ -51,15 +53,71 @@ export default function App() {
     ? mappedVerbatimData[selectedCourseId]
     : defaultKeywordVerbatims;
 
-  // Handler for simulated sleek export action
-  const handleDownloadPDF = () => {
+  // Handler for real sleek export action using html2canvas & jsPDF
+  const handleDownloadPDF = async () => {
     setIsExporting(true);
     setExportSuccess(false);
-    setTimeout(() => {
+    
+    // Save scroll position
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    
+    try {
+      // Find the dashboard element
+      const element = document.getElementById("course-dashboard-content");
+      if (!element) {
+        setIsExporting(false);
+        return;
+      }
+
+      // Smoothly scroll to top to ensure complete layout capture without cut-offs
+      window.scrollTo(0, 0);
+      
+      // Brief delay to allow Recharts animations/layout to settle
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const canvas = await html2canvas(element, {
+        scale: 2, // ultra HD render resolution
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#f8fafc", // matches bg-slate-50
+      });
+
+      // Restore scroll position
+      window.scrollTo(scrollX, scrollY);
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgWidth = 210; // A4 size width in mm
+      const pageHeight = 295; // A4 size height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Add first page
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight, undefined, "FAST");
+      heightLeft -= pageHeight;
+
+      // Handle multi-page generation if height exceeds single A4 page
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight, undefined, "FAST");
+        heightLeft -= pageHeight;
+      }
+
+      const safeName = currentData.courseName.replace(/\s+/g, "_");
+      pdf.save(`EduInsight_${safeName}_만족도_분석_보고서.pdf`);
+
       setIsExporting(false);
       setExportSuccess(true);
       setTimeout(() => setExportSuccess(false), 3000);
-    }, 1800);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      // Fallback: restore scroll position and reset state
+      window.scrollTo(scrollX, scrollY);
+      setIsExporting(false);
+    }
   };
 
   const handleSelectCourse = (course: CourseCatalogItem) => {
@@ -249,7 +307,9 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Top Navigation & Sleek Header */}
+              {/* PDF Capture Target Container */}
+              <div id="course-dashboard-content" className="space-y-8 bg-slate-50 p-4 rounded-3xl pb-10">
+                {/* Top Navigation & Sleek Header */}
               <header className="bg-white border border-slate-200/80 rounded-2xl px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
                 <div className="flex items-center gap-3">
                   <div className="bg-indigo-600 p-2 rounded-lg flex-shrink-0 text-white">
@@ -416,6 +476,7 @@ export default function App() {
               <section>
                 <VerbatimViewer verbatimMapping={currentVerbatimMapping} />
               </section>
+              </div>
 
               {/* Sleek Export Action Button */}
               <section className="flex justify-center max-w-sm mx-auto pt-4">

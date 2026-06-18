@@ -30,7 +30,9 @@ import {
   TrendingUp,
   BarChart3,
   ArrowLeft,
-  AlertCircle
+  AlertCircle,
+  Download,
+  FileImage
 } from "lucide-react";
 
 export default function App() {
@@ -40,9 +42,12 @@ export default function App() {
   // Alert banner for upcoming inactive courses
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
-  // Simulated export state
+  // Robust export state
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [exportSuccess, setExportSuccess] = useState<boolean>(false);
+  const [isExportingPng, setIsExportingPng] = useState<boolean>(false);
+  const [exportPngSuccess, setExportPngSuccess] = useState<boolean>(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // Dynamic dataset selection based on chosen portal course
   const currentData: CourseData = selectedCourseId && mappedCourseData[selectedCourseId] 
@@ -57,6 +62,7 @@ export default function App() {
   const handleDownloadPDF = async () => {
     setIsExporting(true);
     setExportSuccess(false);
+    setExportError(null);
     
     // Save scroll position
     const scrollX = window.scrollX;
@@ -67,6 +73,7 @@ export default function App() {
       const element = document.getElementById("course-dashboard-content");
       if (!element) {
         setIsExporting(false);
+        setExportError("대시보드 콘텐츠를 찾을 수 없습니다.");
         return;
       }
 
@@ -74,11 +81,12 @@ export default function App() {
       window.scrollTo(0, 0);
       
       // Brief delay to allow Recharts animations/layout to settle
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 350));
 
       const canvas = await html2canvas(element, {
-        scale: 2, // ultra HD render resolution
+        scale: 1.5, // 1.5 is extremely stable, fast, and high quality
         useCORS: true,
+        allowTaint: true,
         logging: false,
         backgroundColor: "#f8fafc", // matches bg-slate-50
       });
@@ -112,11 +120,62 @@ export default function App() {
       setIsExporting(false);
       setExportSuccess(true);
       setTimeout(() => setExportSuccess(false), 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("PDF generation failed:", error);
       // Fallback: restore scroll position and reset state
       window.scrollTo(scrollX, scrollY);
       setIsExporting(false);
+      setExportError(`PDF 다운로드 도중 브라우저가 처리를 거부했거나 제한했습니다. (에러: ${error?.message || error}). 아래 '이미지(PNG) 파일로 저장' 버튼을 이용해주시면 100% 안전하게 저장됩니다!`);
+    }
+  };
+
+  // Handler for high-quality PNG image download (bypass frame-blocking issues)
+  const handleDownloadPNG = async () => {
+    setIsExportingPng(true);
+    setExportPngSuccess(false);
+    setExportError(null);
+    
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    
+    try {
+      const element = document.getElementById("course-dashboard-content");
+      if (!element) {
+        setIsExportingPng(false);
+        setExportError("대시보드 콘텐츠를 찾을 수 없습니다.");
+        return;
+      }
+
+      window.scrollTo(0, 0);
+      await new Promise((resolve) => setTimeout(resolve, 350));
+
+      const canvas = await html2canvas(element, {
+        scale: 1.5,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: "#f8fafc",
+      });
+
+      window.scrollTo(scrollX, scrollY);
+
+      const imgData = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      const safeName = currentData.courseName.replace(/\s+/g, "_");
+      link.download = `EduInsight_${safeName}_만족도_분석_보고서.png`;
+      link.href = imgData;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setIsExportingPng(false);
+      setExportPngSuccess(true);
+      setTimeout(() => setExportPngSuccess(false), 3000);
+    } catch (error: any) {
+      console.error("PNG generation failed:", error);
+      window.scrollTo(scrollX, scrollY);
+      setIsExportingPng(false);
+      setExportError(`이미지 다운로드 도중 오류가 발생했습니다: ${error?.message || error}`);
     }
   };
 
@@ -478,36 +537,82 @@ export default function App() {
               </section>
               </div>
 
-              {/* Sleek Export Action Button */}
-              <section className="flex justify-center max-w-sm mx-auto pt-4">
-                <button
-                  onClick={handleDownloadPDF}
-                  disabled={isExporting}
-                  className={`w-full py-3.5 px-6 font-bold text-xs text-white rounded-xl transition-all shadow-lg flex items-center justify-center space-x-2 border cursor-pointer active:scale-98 ${
-                    isExporting
-                      ? "bg-indigo-500/80 border-indigo-400 cursor-wait shadow-indigo-200/50"
-                      : exportSuccess
-                        ? "bg-emerald-600 border-emerald-500 hover:bg-emerald-500 shadow-emerald-100"
-                        : "bg-indigo-600 border-indigo-600 hover:bg-indigo-700 hover:border-indigo-700 shadow-indigo-200"
-                  }`}
-                >
-                  {isExporting ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>분석 보고서 PDF 생성 중 (100% 매핑)...</span>
-                    </>
-                  ) : exportSuccess ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-300 animate-bounce" />
-                      <span>EduInsight 보고서 다운로드 완료!</span>
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-4 h-4 text-indigo-200" />
-                      <span>분석 결과 보고서 다운로드 (PDF)</span>
-                    </>
-                  )}
-                </button>
+              {/* Robust Export Actions Area (PDF & PNG Image) */}
+              <section className="max-w-xl mx-auto pt-6 space-y-4">
+                {exportError && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 bg-amber-50 border border-amber-200/60 rounded-xl flex items-start gap-2.5 text-xs text-amber-800 shadow-sm"
+                  >
+                    <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">
+                      {exportError}
+                    </p>
+                  </motion.div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* PDF Download Button */}
+                  <button
+                    onClick={handleDownloadPDF}
+                    disabled={isExporting || isExportingPng}
+                    className={`py-3 px-5 font-bold text-xs text-white rounded-xl transition-all shadow-md flex items-center justify-center space-x-2 border cursor-pointer active:scale-98 ${
+                      isExporting
+                        ? "bg-indigo-500/80 border-indigo-400 cursor-wait"
+                        : exportSuccess
+                          ? "bg-emerald-600 border-emerald-500 hover:bg-emerald-500"
+                          : "bg-indigo-600 border-indigo-600 hover:bg-indigo-700 hover:border-indigo-700 shadow-indigo-250/20"
+                    }`}
+                  >
+                    {isExporting ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>PDF 생성 중...</span>
+                      </>
+                    ) : exportSuccess ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                        <span>PDF 다운로드 완료!</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4 text-indigo-200" />
+                        <span>보고서 다운로드 (PDF)</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* PNG Image Download Button */}
+                  <button
+                    onClick={handleDownloadPNG}
+                    disabled={isExporting || isExportingPng}
+                    className={`py-3 px-5 font-bold text-xs text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all shadow-sm flex items-center justify-center space-x-2 cursor-pointer active:scale-98 ${
+                      isExportingPng
+                        ? "bg-slate-100 opacity-80 cursor-wait"
+                        : exportPngSuccess
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                          : ""
+                    }`}
+                  >
+                    {isExportingPng ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-slate-500" />
+                        <span>PNG 이미지 생성 중...</span>
+                      </>
+                    ) : exportPngSuccess ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>PNG 저장 완료!</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileImage className="w-4 h-4 text-slate-400" />
+                        <span>전체 화면 캡처 저장 (PNG)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </section>
 
             </motion.div>

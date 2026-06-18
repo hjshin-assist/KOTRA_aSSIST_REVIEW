@@ -32,7 +32,9 @@ import {
   ArrowLeft,
   AlertCircle,
   Download,
-  FileImage
+  FileImage,
+  X,
+  ExternalLink
 } from "lucide-react";
 
 export default function App() {
@@ -48,6 +50,12 @@ export default function App() {
   const [isExportingPng, setIsExportingPng] = useState<boolean>(false);
   const [exportPngSuccess, setExportPngSuccess] = useState<boolean>(false);
   const [exportError, setExportError] = useState<string | null>(null);
+
+  // Export Modal Preview elements
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<"pdf" | "png" | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
 
   // Dynamic dataset selection based on chosen portal course
   const currentData: CourseData = selectedCourseId && mappedCourseData[selectedCourseId] 
@@ -115,7 +123,28 @@ export default function App() {
       }
 
       const safeName = currentData.courseName.replace(/\s+/g, "_");
-      pdf.save(`EduInsight_${safeName}_만족도_분석_보고서.pdf`);
+      
+      // Clean up previous blob URL to avoid leaks
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+      }
+
+      // Extremely robust manual Blob anchor download trigger
+      const pdfBlob = pdf.output("blob");
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      setPdfBlobUrl(blobUrl);
+
+      const pdfDownloadLink = document.createElement("a");
+      pdfDownloadLink.href = blobUrl;
+      pdfDownloadLink.download = `EduInsight_${safeName}_만족도_분석_보고서.pdf`;
+      document.body.appendChild(pdfDownloadLink);
+      pdfDownloadLink.click();
+      document.body.removeChild(pdfDownloadLink);
+
+      // Open fail-safe Preview window for iframe environments
+      setPreviewImg(imgData);
+      setPreviewMode("pdf");
+      setShowPreviewModal(true);
 
       setIsExporting(false);
       setExportSuccess(true);
@@ -167,6 +196,11 @@ export default function App() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      // Open fail-safe Preview window for iframe environments
+      setPreviewImg(imgData);
+      setPreviewMode("png");
+      setShowPreviewModal(true);
 
       setIsExportingPng(false);
       setExportPngSuccess(true);
@@ -537,8 +571,8 @@ export default function App() {
               </section>
               </div>
 
-              {/* Robust Export Actions Area (PDF & PNG Image) */}
-              <section className="max-w-xl mx-auto pt-6 space-y-4">
+              {/* Robust Export Actions Area (PNG Image) */}
+              <section className="max-w-md mx-auto pt-6 space-y-4">
                 {exportError && (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
@@ -552,63 +586,33 @@ export default function App() {
                   </motion.div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* PDF Download Button */}
-                  <button
-                    onClick={handleDownloadPDF}
-                    disabled={isExporting || isExportingPng}
-                    className={`py-3 px-5 font-bold text-xs text-white rounded-xl transition-all shadow-md flex items-center justify-center space-x-2 border cursor-pointer active:scale-98 ${
-                      isExporting
-                        ? "bg-indigo-500/80 border-indigo-400 cursor-wait"
-                        : exportSuccess
-                          ? "bg-emerald-600 border-emerald-500 hover:bg-emerald-500"
-                          : "bg-indigo-600 border-indigo-600 hover:bg-indigo-700 hover:border-indigo-700 shadow-indigo-250/20"
-                    }`}
-                  >
-                    {isExporting ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>PDF 생성 중...</span>
-                      </>
-                    ) : exportSuccess ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-                        <span>PDF 다운로드 완료!</span>
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-4 h-4 text-indigo-200" />
-                        <span>보고서 다운로드 (PDF)</span>
-                      </>
-                    )}
-                  </button>
-
+                <div className="flex justify-center">
                   {/* PNG Image Download Button */}
                   <button
                     onClick={handleDownloadPNG}
-                    disabled={isExporting || isExportingPng}
-                    className={`py-3 px-5 font-bold text-xs text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all shadow-sm flex items-center justify-center space-x-2 cursor-pointer active:scale-98 ${
+                    disabled={isExportingPng}
+                    className={`w-full py-4 px-6 font-bold text-xs text-white rounded-xl transition-all shadow-lg flex items-center justify-center space-x-2 border cursor-pointer active:scale-98 ${
                       isExportingPng
-                        ? "bg-slate-100 opacity-80 cursor-wait"
+                        ? "bg-indigo-500/80 border-indigo-400 cursor-wait shadow-indigo-200/30"
                         : exportPngSuccess
-                          ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                          : ""
+                          ? "bg-emerald-600 border-emerald-500 hover:bg-emerald-500 shadow-emerald-100"
+                          : "bg-indigo-600 border-indigo-600 hover:bg-indigo-700 hover:border-indigo-700 shadow-indigo-200/50"
                     }`}
                   >
                     {isExportingPng ? (
                       <>
-                        <RefreshCw className="w-4 h-4 animate-spin text-slate-500" />
-                        <span>PNG 이미지 생성 중...</span>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>보고서 이미지(PNG) 파일용 렌더링 중...</span>
                       </>
                     ) : exportPngSuccess ? (
                       <>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        <span>PNG 저장 완료!</span>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                        <span>보고서 이미지 저장 완료!</span>
                       </>
                     ) : (
                       <>
-                        <FileImage className="w-4 h-4 text-slate-400" />
-                        <span>전체 화면 캡처 저장 (PNG)</span>
+                        <FileImage className="w-4 h-4 text-indigo-200" />
+                        <span>전체 분석 보고서 저장하기 (고화질 이미지)</span>
                       </>
                     )}
                   </button>
@@ -616,6 +620,159 @@ export default function App() {
               </section>
 
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Fail-safe Preview Guidance Modal */}
+        <AnimatePresence>
+          {showPreviewModal && previewImg && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowPreviewModal(false)}
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm shadow-2xl"
+              />
+
+              {/* Modal Body */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col z-10 max-h-[85vh]"
+              >
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                  <div className="flex items-center space-x-2">
+                    <div className="bg-emerald-500 p-1.5 rounded-lg text-white">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-slate-800">
+                        {previewMode === "pdf" ? "PDF 분석 보고서 생성 최적화 완료" : "다운로드 이미지 변환 완료"}
+                      </h3>
+                      <p className="text-[10px] text-slate-500">Iframe 호환용 안전 다운로드 환경 안내</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowPreviewModal(false)}
+                    className="p-1.5 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 overflow-y-auto space-y-5">
+                  {/* Instructions Callout */}
+                  <div className="p-4 bg-indigo-50 border border-indigo-100/85 rounded-xl space-y-3">
+                    <h4 className="font-bold text-xs text-indigo-900 flex items-center gap-1.5">
+                      <AlertCircle className="w-4.5 h-4.5 text-indigo-600 flex-shrink-0" />
+                      중요: 브라우저 보안 및 프레임 제한 안내
+                    </h4>
+                    <p className="text-xs text-indigo-950 leading-relaxed font-normal">
+                      현재 회원님이 보고 계신 곳은 <strong>AI Studio 개발자 미리보기용 창(iframe)</strong>입니다. 
+                      크롬 및 에지 브라우저의 전용 보안 규칙 상, iframe 보호막 내부에서는 프로그램적 전송 호출(자동 다운로드)이 차단되므로 UI가 "다운로드 완료"로 실행되어도 파일 저장이 차단될 수 있습니다. 
+                      상황에 맞춰 <strong>아래의 2가지 초간단 수동 및 정식 저장 방식</strong>을 활용해 저장해 보세요!
+                    </p>
+                    
+                    <div className="space-y-3 mt-2.5 pt-2.5 border-t border-indigo-100/60">
+                      {/* Way 1 */}
+                      <div className="text-xs text-indigo-950 flex items-start gap-2.5">
+                        <span className="bg-indigo-200/80 text-indigo-800 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">방법 1</span>
+                        <p className="leading-relaxed">
+                          <strong>마우스 오른쪽 클릭으로 저장 (가장 빠름)</strong><br />
+                          하단 미리보기 박스의 이미지 영역에서 <span className="underline decoration-indigo-400 font-semibold text-indigo-900">마우스 우클릭 -&gt; [이미지를 다른 이름으로 저장...]</span>을 클릭하시면 최고의 초고화질 캡처본이 단 1초 만에 로컬 드라이브에 저장됩니다!
+                        </p>
+                      </div>
+                      
+                      {/* Way 2 */}
+                      <div className="text-xs text-indigo-950 flex items-start gap-2.5">
+                        <span className="bg-indigo-200/80 text-indigo-800 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">방법 2</span>
+                        <p className="leading-relaxed">
+                          <strong>새 탭(원래 웹 브라우저)에서 열어서 자동 다운로드 받기</strong><br />
+                          아래 <span className="font-semibold text-indigo-900">[새 창에서 앱 실행하기]</span> 버튼을 클릭하여 완전한 새 브라우저 창에서 대시보드를 열어주세요. 
+                          그곳은 iframe 제한이 없는 일반 주소이기 때문에 보고서 다운로드 클릭 시 즉시 PDF 및 PNG 파일이 드라이브에 자동으로 받아집니다!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions in Modal */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-1 font-sans">
+                    <a
+                      href={window.location.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all shadow-md shadow-indigo-150 active:scale-98"
+                    >
+                      <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                      <span>새 창(탭)에서 앱 실행하기</span>
+                    </a>
+                    
+                    {previewMode === "pdf" && pdfBlobUrl ? (
+                      <button
+                        onClick={() => {
+                          const link = document.createElement("a");
+                          link.download = `EduInsight_${currentData.courseName.replace(/\s+/g, "_")}_만족도_분석_보고서.pdf`;
+                          link.href = pdfBlobUrl;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                        className="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all shadow-md cursor-pointer active:scale-98"
+                      >
+                        <Download className="w-4 h-4 text-emerald-200 flex-shrink-0" />
+                        <span>PDF 수동 저장 (100% 안전방식)</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          const link = document.createElement("a");
+                          link.download = `EduInsight_${currentData.courseName.replace(/\s+/g, "_")}_만족도_분석_보고서.png`;
+                          link.href = previewImg;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                        className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all border border-slate-200 cursor-pointer active:scale-98"
+                      >
+                        <Download className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                        <span>PNG 이미지로 저장하기</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Report Capture Preview Frame */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-[11px] text-slate-500 font-semibold px-1">
+                      <span>대시보드 실시간 분석 보고서 (고화질 캡처 영역 - 우클릭 가능)</span>
+                      <span className="text-indigo-600">마우스 오른쪽 버튼 클릭 지원</span>
+                    </div>
+                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-100 p-2.5 max-h-[300px] overflow-y-auto shadow-inner">
+                      <img
+                        src={previewImg}
+                        alt="EduInsight Report Preview"
+                        className="w-full h-auto rounded-lg shadow-sm border border-slate-200 select-all"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer of modal */}
+                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                  <button
+                    onClick={() => setShowPreviewModal(false)}
+                    className="py-2 px-5 bg-slate-800 hover:bg-slate-950 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                  >
+                    확인 후 닫기
+                  </button>
+                </div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
 

@@ -10,7 +10,7 @@ export const additionalCatalogItems: CourseCatalogItem[] = [
     overallSatisfaction: 7.5,
     status: "완료",
     description: "가깝고도 먼 일본 시장의 통상 매커니즘, 바이어 교섭 규범 대응 및 현지 이커머스 입점 프로세스 마스터 교육",
-    category: "글로벌 비즈니스"
+    category: "국가별 해외시장 진출 과정"
   },
   {
     id: "indonesia-market-entry",
@@ -21,7 +21,7 @@ export const additionalCatalogItems: CourseCatalogItem[] = [
     overallSatisfaction: 8.2,
     status: "완료",
     description: "아세안 거점 신흥 시장 인도네시아의 고유 비즈니스 문화, 유통 경로 및 실전 진출 전략을 연계 분석하는 과정",
-    category: "글로벌 비즈니스"
+    category: "국가별 해외시장 진출 과정"
   },
   {
     id: "global-sales-competency",
@@ -32,7 +32,7 @@ export const additionalCatalogItems: CourseCatalogItem[] = [
     overallSatisfaction: 8.8,
     status: "완료",
     description: "무역 실무 기본 소양 배양과 글로벌 바이어 설득 및 효율적인 세일즈 파이프라인 관리 역량을 확보하는 실무 집중 교육",
-    category: "세일즈 실무"
+    category: "글로벌 비즈니스 과정"
   }
 ];
 

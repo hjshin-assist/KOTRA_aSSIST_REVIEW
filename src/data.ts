@@ -665,7 +665,7 @@ export const courseCatalog: CourseCatalogItem[] = [
     overallSatisfaction: 8.5,
     status: "완료",
     description: "내수 및 수출 초보 기업이 실전 수출 계약 및 단계별 대응을 통해 수출의 첫 관문을 안정적으로 여는 입문 실무 과정",
-    category: "수출 입문"
+    category: "글로벌 비즈니스 과정"
   },
   {
     id: "kotra-usa-2026",
@@ -676,7 +676,7 @@ export const courseCatalog: CourseCatalogItem[] = [
     overallSatisfaction: 9.1,
     status: "완료",
     description: "미국 권역 내 현지 맞춤형 마케팅 채널 수립 및 관세/통관 핵심 실무 지식 함양 과정",
-    category: "글로벌 비즈니스"
+    category: "국가별 해외시장 진출 과정"
   },
   {
     id: "kotra-exhibition-2026",
@@ -687,7 +687,7 @@ export const courseCatalog: CourseCatalogItem[] = [
     overallSatisfaction: 8.6,
     status: "완료",
     description: "해외 전시회 기획과 부스 디자인 및 대기업/중소기업 눈높이에 따른 오감 만족 해외 밀착 마케팅 설계 과정",
-    category: "해외 마케팅"
+    category: "글로벌 비즈니스 과정"
   }
 ];
 

@@ -1,4 +1,16 @@
-import { CourseData, KeywordVerbatimMapping } from "./types";
+import { CourseData, KeywordVerbatimMapping, CourseCatalogItem } from "./types";
+import {
+  additionalCatalogItems,
+  globalSalesCourseData,
+  indonesiaCourseData,
+  japanCourseData,
+  globalSalesVerbatims,
+  indonesiaVerbatims,
+  japanVerbatims,
+  allCoursesIntegratedCatalogItem,
+  allCoursesIntegratedData,
+  allCoursesIntegratedVerbatims
+} from "./additionalData";
 
 export const defaultCourseData: CourseData = {
   courseName: "미국시장 진출 과정",
@@ -147,6 +159,11 @@ export const defaultCourseData: CourseData = {
       level: "info",
       text: "B2B/B2C 수강 타겟 안내 보완",
       description: "수강 타겟이 혼재(B2B/B2C, B2G)되어 강의 신청 전에 타겟 구성 안내가 보강되면 좋겠다는 신호가 감지되었습니다."
+    },
+    {
+      level: "info",
+      text: "중강의실 교육장 환경 우수",
+      description: "배정된 중강의실의 쾌적하고 위생적인 실습 환경 덕택에 시설 및 환경 부문 만족도 평점 4.80의 우수한 신호가 유지됩니다."
     }
   ],
   verbatims: [
@@ -161,6 +178,11 @@ export const defaultCourseData: CourseData = {
     "- 모든 강사분들께 감사인사드립니다. 짧은시간이었지만 많은부분 도움되었습니다.",
     "- 특히 박다솔 대표의 현장에서의 실무를 피부에 와닿게 설명주신게 컸습니다.",
     "- 이런 강좌가 앞으로 많이 개설되길바랍니다."
+  ],
+  aiSummary: [
+    "이번 교육은 전반적으로 <span class=\"font-extrabold text-indigo-750 underline decoration-indigo-300 underline-offset-4\">10점 만점 기준 9.1점의 최고 수준 만족도</span>를 기록하며 미국 시장 진출을 희망하는 중소기업 대표님들에게 성공적인 이정표를 제시하였습니다.",
+    "특히 강사진의 깊이 있는 실무 노하우, 특히 <span class=\"bg-indigo-50 text-indigo-805 px-1.5 py-0.5 rounded font-bold\">박다솔 대표의 미국 온·오프라인 진출 마케팅 분석</span> 및 <span class=\"bg-indigo-50 text-indigo-805 px-1.5 py-0.5 rounded font-bold\">전용대 관세사의 노하우 전달성</span> 강의 방식으로 수강평점 대호평을 취합했습니다.",
+    "반면 워크숍 실습 중 <span class=\"bg-rose-50 text-rose-700 font-bold px-1 rounded\">교과 범위 대비 배정 시간 부족</span> 및 미국 마케팅 실전 수치 작성 시간이 타이트했다는 피드백이 감지되어 향후 Q&A 버퍼 타임 확보가 제안됩니다."
   ]
 };
 
@@ -193,6 +215,14 @@ export const defaultKeywordVerbatims: KeywordVerbatimMapping = {
     description: "각 교육생 비즈니스 모델에 선제 부합하도록 사전에 대상자 기준 공지를 정비하길 바라는 의견입니다.",
     verbatims: [
       "- 저는 B2B,B2G 거래를 하는 기업이기에, 마지막 강의는 듣지 않았습니다. 강의신청 전 B2C 포함이라는 안내를 미리 해주셨다면 도움이 됐을것 같습니다."
+    ]
+  },
+  "중강의실 우수": {
+    keyword: "중강의실 쾌적한 시설 호평",
+    description: "미국시장 진출 과정이 치러진 중강의실의 뛰어난 인프라, 쾌적한 냉난방 상태 및 콘센트 구비 수준에 관한 칭찬 의견군입니다.",
+    verbatims: [
+      "- 확실히 중강의실에 콘센트도 많고 에어컨 상태도 훌륭해서 오리엔테이션부터 끝까지 엄청 쾌적하게 들었네요.",
+      "- 중강의실 실습실이 깨끗하고 청결해서 교육에 기분 좋게 완전 몰입할 수 있었습니다."
     ]
   },
   "기타 격려": {
@@ -338,8 +368,8 @@ export const kotraExhibitionCourseData: CourseData = {
     },
     {
       level: "warning",
-      text: "물리 인프라 보수 애로",
-      description: "고장난 실습용 가구(의자, 테이블) 방치와 전기 전력 케이블 콘센트 부족이 불만족 지수로 환산되어 반영되었습니다."
+      text: "오영교실 물리 인프라 보수 애로",
+      description: "배정된 오영교실의 고장난 실습용 가구(의자, 테이블) 방치와 전기 전력 케이블 콘센트 부족이 시설 만족도(평점 4.00) 하락 및 개선 신호로 감지되었습니다."
     },
     {
       level: "info",
@@ -360,6 +390,11 @@ export const kotraExhibitionCourseData: CourseData = {
     "그리고 강사님이 화이트보드 사용하셨는데 하나도 안보였어요.",
     "데이터는 책말고 파일이 좋아요 무거워요ᆢ ^^;;",
     "교육 자체는 만족스러웠고, 직원분들도 친절하고 다과와 식사도 좋았지만"
+  ],
+  aiSummary: [
+    "이번 교육은 전반적으로 <span class=\"font-extrabold text-indigo-750 underline decoration-indigo-300 underline-offset-4\">10점 만점 기준 8.6점의 우수한 만족도</span>를 달성하며 해외 전시회 참가를 기획하는 기업들의 실무 고도화에 기여하였습니다.",
+    "학업 전문성 면에서 <span class=\"bg-indigo-50 text-indigo-805 px-1.5 py-0.5 rounded font-bold\">이형주 대표(평점 4.83)의 유려한 현장 지식 전달</span> 및 밀도 높은 무역 전시 실전 교안 구성은 수강생들의 뜨거운 격찬을 받았습니다.",
+    "다만 시각 자료 위주 실습에서 <span class=\"bg-rose-50 text-rose-700 font-bold px-1 rounded\">배포 교안이 전면 흑백 인쇄본으로 제작</span>되어 우수한 인포그래픽 시인성을 다소 제약하였다는 가독 개선 요구와 노후 가구 교체 건의가 접수되었습니다."
   ]
 };
 
@@ -375,8 +410,8 @@ export const kotraExhibitionVerbatims: KeywordVerbatimMapping = {
     ]
   },
   "강장 시설 애로": {
-    keyword: "노후화 가구 보수 및 배선 충원",
-    description: "부서진 실습 책상들이 그냥 쓰였고 노트북 가동을 위한 전력 콘센트 시설 부재, 화이트보드 가시 장벽 관련입니다.",
+    keyword: "오영교실 가구 보수 및 배선 충원",
+    description: "오영교실의 부서진 실습 책상들이 그냥 쓰였고 노트북 가동을 위한 전력 콘센트 시설 부재, 화이트보드 가시 장벽 관련입니다.",
     verbatims: [
       "- 고장난 책상, 부족한 콘센트",
       "- 의자나 테이블이 강의에 적합한 공간은 아니었습니다.",
@@ -402,19 +437,236 @@ export const kotraExhibitionVerbatims: KeywordVerbatimMapping = {
   }
 };
 
-export interface CourseCatalogItem {
-  id: string;
-  courseName: string;
-  date: string;
-  participants: number;
-  evaluators: number;
-  overallSatisfaction: number;
-  status: "완료" | "진행중" | "대기";
-  description: string;
-  category: string;
-}
+// =================수출 첫 걸음 과정 (New Completed Course Data)=================
+export const kotraFirstStepCourseData: CourseData = {
+  courseName: "수출 첫 걸음 과정",
+  date: "2026.05.20",
+  participants: 33,
+  evaluators: 28,
+  overallSatisfaction: 8.5,
+  satisfactionProgress: 4.44,
+  companyDist: {
+    size: {
+      중소기업: 26,
+      중견기업: 1,
+      대기업: 5,
+      정부유관: 0,
+      학생: 0,
+      기타: 1,
+    },
+    industry: {
+      "자동차 부품": 2,
+      "전기 전자": 2,
+      "기계류": 3,
+      "디스플레이": 1,
+      "패션 의류": 1,
+      "의료 의약": 5,
+      "생활 유아": 1,
+      "화장품": 5,
+      "농수산 식품": 7,
+      "기타": 6
+    }
+  },
+  stats: [
+    {
+      qId: "Q1",
+      question: "교육이 나의 수강 목적에 부합한다. (교육 기획)",
+      average: 4.5,
+      ratingsDistribution: { 3: 5, 4: 5, 5: 18 }
+    },
+    {
+      qId: "Q2",
+      question: "전반적인 교육 구성이 잘 되어있다. (교육 기획)",
+      average: 4.6,
+      ratingsDistribution: { 3: 2, 4: 8, 5: 18 }
+    },
+    {
+      qId: "Q3",
+      question: "교육 내용의 난이도가 적절하다. (교육 기획)",
+      average: 4.4,
+      ratingsDistribution: { 2: 1, 3: 4, 4: 6, 5: 17 }
+    },
+    {
+      qId: "Q4",
+      question: "교육 환경이 만족스러웠다. (교육 운영/시설)",
+      average: 4.3,
+      ratingsDistribution: { 2: 1, 3: 3, 4: 10, 5: 14 }
+    },
+    {
+      qId: "Q5",
+      question: "교육별 강의 시간은 적절하였다. (교육 운영/시간)",
+      average: 4.5,
+      ratingsDistribution: { 3: 2, 4: 11, 5: 15 }
+    },
+    {
+      qId: "Q6",
+      question: "전반적인 교육 운영은 원활하게 이루어졌다. (교육 운영)",
+      average: 4.6,
+      ratingsDistribution: { 3: 1, 4: 8, 5: 19 }
+    },
+    {
+      qId: "Q19",
+      question: "교육을 통해 업무에 도움이 되는 정보를 얻었다. (업무 활용도)",
+      average: 4.4,
+      ratingsDistribution: { 3: 7, 4: 4, 5: 17 }
+    },
+    {
+      qId: "Q20",
+      question: "교육 내용은 실제 업무 수행에 도움이 될 것이다. (업무 활용도)",
+      average: 4.4,
+      ratingsDistribution: { 3: 5, 4: 7, 5: 16 }
+    },
+    {
+      qId: "Q21",
+      question: "해당 교육과정을 타인에게 추천할 의향이 있다. (추천 의력)",
+      average: 4.3,
+      ratingsDistribution: { 2: 2, 3: 3, 4: 8, 5: 15 }
+    }
+  ],
+  instructors: [
+    {
+      name: "정재승 교수",
+      title: "수출 실전에 관한 전문 지식 및 경험",
+      overallAverage: 4.55,
+      questions: [
+        { qId: "Q7", text: "전문 노하우 숙련도", average: 4.7 },
+        { qId: "Q8", text: "설명 전달 명확성", average: 4.5 },
+        { qId: "Q9", text: "교육참여 관심 유도", average: 4.5 },
+        { qId: "Q10", text: "교재 및 자격 충실도", average: 4.5 }
+      ]
+    },
+    {
+      name: "강영수 대표",
+      title: "글로벌 시장 진출 전략가",
+      overallAverage: 4.63,
+      questions: [
+        { qId: "Q11", text: "전문 노하우 숙련도", average: 4.7 },
+        { qId: "Q12", text: "설명 전달 명확성", average: 4.6 },
+        { qId: "Q13", text: "교육참여 관심 유도", average: 4.6 },
+        { qId: "Q14", text: "교재 및 자격 충실도", average: 4.6 }
+      ]
+    },
+    {
+      name: "최철식 위원",
+      title: "수출 시장 분석 최고 자문역",
+      overallAverage: 4.68,
+      questions: [
+        { qId: "Q15", text: "전문 노하우 숙련도", average: 4.8 },
+        { qId: "Q16", text: "설명 전달 명확성", average: 4.7 },
+        { qId: "Q17", text: "교육참여 관심 유도", average: 4.6 },
+        { qId: "Q18", text: "교재 및 자격 충실도", average: 4.6 }
+      ]
+    }
+  ],
+  positiveOpinions: [
+    { rank: 1, text: "미국, 중국 등 타겟 권역 수출을 진지하게 고려하는 기업을 위한 최선 정보 제공", count: 1 },
+    { rank: 2, text: "실전적으로 적용해볼 수 있는 구체적인 수출 프로세스 가이드 및 만족도 양호", count: 1 },
+    { rank: 3, text: "실습 및 실제 과정 중심의 수업 지형도에 수긍성과 유용성이 뛰어남", count: 1 }
+  ],
+  improvementOpinions: [
+    { rank: 1, text: "자사 제품을 구비하여 계약서를 실제 작성하는 식의 액티브 실습 및 시뮬레이션 희망", count: 1 },
+    { rank: 2, text: "내수 및 초보 신진 기업의 눈높이에 알맞게 바우처 지원 체계와 세부 가이드 보충 요구", count: 1 },
+    { rank: 3, text: "점심 식사 동선을 위해 멀리 이동하지 않도록 건물 내부 구내식당 이용을 제공 희망", count: 1 },
+    { rank: 4, text: "수출을 한 번도 안 해본 0인 상태 기준으로는 생소한 법률 용어가 있어 추가 연착륙 설명 요망", count: 1 }
+  ],
+  riskSignals: [
+    {
+      level: "danger",
+      text: "수정 실무 계약서 실습 갈증",
+      description: "인터랙티브 요소를 증진하여 자사 제품 계약서를 손수 작성 및 체결해보는 밀접 세션이 구비되어야 한다는 평가가 관측됩니다."
+    },
+    {
+      level: "warning",
+      text: "생초보 수강생 가독 연착륙",
+      description: "수출 전무 상태인 기업들을 겨냥해 바우처 신청 절차 등과 같이 입문 디테일을 별도 트랙화 해달라는 신호입니다."
+    },
+    {
+      level: "warning",
+      text: "중강의실 위생 및 행정 안내 보충",
+      description: "배정된 중강의실의 전반적인 행정 안내 및 위생 환경 만족도가 평점 4.30으로 집계되어, 멀티미디어 와이파이 보완 및 강의장 안내 약도 보충이 제안됩니다."
+    },
+    {
+      level: "info",
+      text: "점심 식사 연계 간소화 요인",
+      description: "점심시간 대 외식 동선 불편을 최소화할 수 있도록 원내 구내식당 쿠폰 연계 등을 제안하는 피드백이 존재합니다."
+    }
+  ],
+  verbatims: [
+    "수출과정을 더 자세히 알고싶습니다",
+    "실제 수출 과정 사례를 토대로 수업을 진행하면 좋겠다",
+    "미국, 중국에 수출을 준비하고있는 기업으로써, 많은 도움이되었습니다.",
+    "수출과정도 바우처처럼 내수/초보 이런식으로 디테일화해서 하면 좋을 것 같아요.",
+    "0인상태에서 넣으려니 너무 생소하고 어렵네요 좀더 실습 위주였으면 좋겠어요",
+    "예) 자사 제품을 가지고 계약서 작성해보기 등.",
+    "점심 식사를 구내식당에서 제공해 주면 좋을 듯 함",
+    "만족스럽습니다",
+    "수출초보기업 첫 수출 실전 실습처럼 정말 세밀하게 알려주는 수업이 꼭 있으면 좋겠습니다."
+  ],
+  aiSummary: [
+    "이번 교육은 전반적으로 <span class=\"font-extrabold text-indigo-750 underline decoration-indigo-300 underline-offset-4\">10점 만점 기준 8.5점의 탄탄한 만족도</span>를 기록하며 신입 수출 요구 기업들의 핵심 애로사항 조기 극복을 지원하였습니다.",
+    "특히 <span class=\"bg-indigo-50 text-indigo-805 px-1.5 py-0.5 rounded font-bold\">최철식 위원(평점 4.68), 강영수 대표(평점 4.63) 및 정재승 교수(평점 4.55)</span> 등 검증된 교강사진의 풍부한 무역 행정 실증 사례 교육 방식이 큰 신뢰를 획득했습니다.",
+    "다만 무역 입문자를 상대로 하여 <span class=\"bg-rose-50 text-rose-700 font-bold px-1 rounded\">실제 자사 물품의 수출 수출계약서 양식을 직접 빌딩하는 실증 실습 시간</span>의 추가 배분 요구와 구내 식음 제공 및 강의실 안내 연착륙에 관한 편의 보완 요청이 수렴되었습니다."
+  ]
+};
+
+export const kotraFirstStepVerbatims: KeywordVerbatimMapping = {
+  "중강의실 시설 보완": {
+    keyword: "중강의실 인프라 및 안내 편의",
+    description: "중강의실 내 무선 인터넷 인프라 개편 요구 및 원활한 강의실 약도 안내 구축에 관한 분석 사항입니다.",
+    verbatims: [
+      "- 중강의실 와이파이가 자주 고장나서 수업 자료 파일 다운로드가 참 불편했습니다.",
+      "- 처음 시설을 방문했는데 입구에 중강의실 안내판이나 사전에 장소를 물어볼 안내자가 없어 초반에 우왕좌왕했네요."
+    ]
+  },
+  "실전 계약서 실습": {
+    keyword: "수출 계약 실증적 실습",
+    description: "이론 개론 전수 이외에 본인 아이템 기반 수출 계약 문서를 직접 구안 및 드래프팅해보려는 의지가 포착됩니다.",
+    verbatims: [
+      "- 0인상태에서 넣으려니 너무 생소하고 어렵네요 좀더 실습 위주였으면 좋겠어요",
+      "- 예) 자사 제품을 가지고 계약서 작성해보기 등.",
+      "- 실제 수출 과정 사례를 토대로 수업을 진행하면 좋겠다"
+    ]
+  },
+  "초보 맞춤형 정립": {
+    keyword: "초보 맞춤형 코칭 수집",
+    description: "수출 절차가 낯선 영세 또는 창업 기업들을 위해 바우처 지원 체계와 결합된 디테일 세그먼트를 세워달라는 의견군입니다.",
+    verbatims: [
+      "- 수출과정도 바우처처럼 내수/초보 이런식으로 디테일화해서 하면 좋을 것 같아요.",
+      "- 수출초보기업 첫 수출 실전 실습처럼 정말 세밀하게 알려주는 수업이 꼭 있으면 좋겠습니다.",
+      "- 수출과정을 더 자세히 알고싶습니다"
+    ]
+  },
+  "식음 편익 개선": {
+    keyword: "점심 구내식당 이용 호소",
+    description: "오프라인 교육 중 중식 확보의 심리·시간적 피로 극복을 위해 구내식당 인프라를 동원해달라는 편의 요청입니다.",
+    verbatims: [
+      "- 점심 식사를 구내식당에서 제공해 주면 좋을 듯 함"
+    ]
+  },
+  "적용 유용성 격려": {
+    keyword: "수출 진출 가치 격려",
+    description: "실제 수출 실무를 관장하는 데 유용하고, 교육 자체에 만족하여 향후 발전을 독려하는 문장입니다.",
+    verbatims: [
+      "- 미국, 중국에 수출을 준비하고있는 기업으로써, 많은 도움이되었습니다.",
+      "- 만족스럽습니다"
+    ]
+  }
+};
 
 export const courseCatalog: CourseCatalogItem[] = [
+  allCoursesIntegratedCatalogItem,
+  ...additionalCatalogItems,
+  {
+    id: "kotra-first-step-2026",
+    courseName: "수출 첫 걸음 과정",
+    date: "2026.05.20",
+    participants: 33,
+    evaluators: 28,
+    overallSatisfaction: 8.5,
+    status: "완료",
+    description: "내수 및 수출 초보 기업이 실전 수출 계약 및 단계별 대응을 통해 수출의 첫 관문을 안정적으로 여는 입문 실무 과정",
+    category: "수출 입문"
+  },
   {
     id: "kotra-usa-2026",
     courseName: "미국시장 진출 과정",
@@ -436,37 +688,25 @@ export const courseCatalog: CourseCatalogItem[] = [
     status: "완료",
     description: "해외 전시회 기획과 부스 디자인 및 대기업/중소기업 눈높이에 따른 오감 만족 해외 밀착 마케팅 설계 과정",
     category: "해외 마케팅"
-  },
-  {
-    id: "global-b2b-scaleup",
-    courseName: "글로벌 B2B 마케팅 및 스케일업 과정",
-    date: "2026.07.12",
-    participants: 20,
-    evaluators: 0,
-    overallSatisfaction: 0,
-    status: "대기",
-    description: "해외 타겟 B2B 비즈니스 개발 및 엔터프라이즈 세일즈 파이프라인 구축 기법 교육",
-    category: "마케팅/세일즈"
-  },
-  {
-    id: "eu-esg-regulation",
-    courseName: "EU 탄소조정제도(CBAM) 및 ESG 수입 규제대응 과정",
-    date: "2026.08.18",
-    participants: 25,
-    evaluators: 0,
-    overallSatisfaction: 0,
-    status: "대기",
-    description: "유럽연합 기후 위기 극복 및 공급망 탄소 국경세 신고 기준을 학습하고 대비하는 교육",
-    category: "ESG/수출규제"
   }
 ];
 
 export const mappedCourseData: Record<string, CourseData> = {
+  "all-courses-integrated": allCoursesIntegratedData,
   "kotra-usa-2026": defaultCourseData,
   "kotra-exhibition-2026": kotraExhibitionCourseData,
+  "kotra-first-step-2026": kotraFirstStepCourseData,
+  "global-sales-competency": globalSalesCourseData,
+  "indonesia-market-entry": indonesiaCourseData,
+  "japan-market-entry": japanCourseData,
 };
 
 export const mappedVerbatimData: Record<string, KeywordVerbatimMapping> = {
+  "all-courses-integrated": allCoursesIntegratedVerbatims,
   "kotra-usa-2026": defaultKeywordVerbatims,
   "kotra-exhibition-2026": kotraExhibitionVerbatims,
+  "kotra-first-step-2026": kotraFirstStepVerbatims,
+  "global-sales-competency": globalSalesVerbatims,
+  "indonesia-market-entry": indonesiaVerbatims,
+  "japan-market-entry": japanVerbatims,
 };

@@ -58,6 +58,7 @@ export interface CourseData {
   improvementOpinions: TopOpinion[];
   riskSignals: RiskSignal[];
   verbatims: string[];
+  aiSummary?: string[];
 }
 
 export interface KeywordVerbatimMapping {
@@ -66,4 +67,16 @@ export interface KeywordVerbatimMapping {
     verbatims: string[];
     description: string;
   };
+}
+
+export interface CourseCatalogItem {
+  id: string;
+  courseName: string;
+  date: string;
+  participants: number;
+  evaluators: number;
+  overallSatisfaction: number;
+  status: "완료" | "진행중" | "대기";
+  description: string;
+  category: string;
 }

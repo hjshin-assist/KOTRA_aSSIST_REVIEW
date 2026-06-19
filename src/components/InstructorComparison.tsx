@@ -8,7 +8,7 @@ interface InstructorComparisonProps {
 }
 
 export function InstructorComparison({ instructors }: InstructorComparisonProps) {
-  const [selectedInstructor, setSelectedInstructor] = useState<string>(instructors[2]?.name || "");
+  const [selectedInstructor, setSelectedInstructor] = useState<string>(instructors[0]?.name || "");
 
   return (
     <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
@@ -125,10 +125,10 @@ export function InstructorComparison({ instructors }: InstructorComparisonProps)
 
                 <div className="pt-4 border-t border-slate-100">
                   <div className="flex items-start space-x-2 text-slate-500">
-                    <Award className="w-4 h-4 text-slate-800 mt-0.5 flex-shrink-0" />
+                    <Award className="w-4 h-4 text-slate-850 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-[11px] leading-relaxed text-slate-400">
-                        {ins.name} 강사는 <span className="font-bold text-slate-700">전문성 부문(4.8)</span>에서 최고 수준의 찬사를 받았으며, 유창하고 매끄러운 진행 방식이 주관식 원문에서도 반복 확인되었습니다.
+                        {ins.name} 강사는 종합적인 설문 지표 평균 <span className="font-bold text-slate-700">{ins.overallAverage.toFixed(2)}점</span>을 달성하였으며, 실제 실무 연계성이 높은 수준 높은 강의를 진행해 만족스러운 호평을 이끌어냈습니다.
                       </p>
                     </div>
                   </div>

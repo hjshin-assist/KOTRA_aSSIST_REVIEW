@@ -6,7 +6,6 @@ import {
   defaultCourseData, 
   defaultKeywordVerbatims, 
   courseCatalog, 
-  CourseCatalogItem,
   mappedCourseData,
   mappedVerbatimData
 } from "./data";
@@ -16,7 +15,7 @@ import { InstructorComparison } from "./components/InstructorComparison";
 import { RiskSignalPanel } from "./components/RiskSignalPanel";
 import { OpinionTopSection } from "./components/OpinionTopSection";
 import { VerbatimViewer } from "./components/VerbatimViewer";
-import { CourseData, KeywordVerbatimMapping } from "./types";
+import { CourseData, KeywordVerbatimMapping, CourseCatalogItem } from "./types";
 import { 
   Building, 
   Users, 
@@ -34,8 +33,83 @@ import {
   Download,
   FileImage,
   X,
-  ExternalLink
+  ExternalLink,
+  Sparkles
 } from "lucide-react";
+
+// Helper to convert oklch string definitions to standard rgb/rgba values for compatibility with html2canvas CSS parsing
+function oklchToRgb(lVal: string, cVal: string, hVal: string, aVal: string | undefined): string {
+  // Parse Lightness
+  let L = parseFloat(lVal);
+  if (lVal.includes('%')) {
+    L /= 100;
+  }
+  
+  // Parse Chroma
+  let C = parseFloat(cVal);
+  if (cVal.includes('%')) {
+    C /= 100;
+  }
+  
+  // Parse Hue
+  let H = parseFloat(hVal);
+  if (hVal.toLowerCase().includes('rad')) {
+    H = parseFloat(hVal.replace(/rad/i, '')) * (180 / Math.PI);
+  } else if (hVal.toLowerCase().includes('turn')) {
+    H = parseFloat(hVal.replace(/turn/i, '')) * 360;
+  } else if (hVal.toLowerCase().includes('deg')) {
+    H = parseFloat(hVal.replace(/deg/i, ''));
+  }
+  
+  const H_rad = H * (Math.PI / 180);
+  
+  const oklab_a = C * Math.cos(H_rad);
+  const oklab_b = C * Math.sin(H_rad);
+  
+  const l_ = L + 0.3963377774 * oklab_a + 0.2158037573 * oklab_b;
+  const m_ = L - 0.1055613458 * oklab_a - 0.0638541728 * oklab_b;
+  const s_ = L - 0.0894841775 * oklab_a - 1.2914855480 * oklab_b;
+  
+  const l = l_ * l_ * l_;
+  const m = m_ * m_ * m_;
+  const s = s_ * s_ * s_;
+  
+  const r_linear = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+  const g_linear = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+  const b_linear = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+  
+  const gamma = (x: number) => {
+    return x >= 0.0031308 ? 1.055 * Math.pow(x, 1 / 2.4) - 0.055 : 12.92 * x;
+  };
+  
+  const r = Math.max(0, Math.min(255, Math.round(gamma(r_linear) * 255)));
+  const g = Math.max(0, Math.min(255, Math.round(gamma(g_linear) * 255)));
+  const b = Math.max(0, Math.min(255, Math.round(gamma(b_linear) * 255)));
+  
+  if (aVal !== undefined) {
+    let alpha = parseFloat(aVal);
+    if (aVal.includes('%')) {
+      alpha /= 100;
+    }
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+// Function to replace all oklch color references in style strings with rgb/rgba values
+function replaceOklchInCss(cssText: string): string {
+  if (!cssText.toLowerCase().includes("oklch")) return cssText;
+  
+  const oklchRegex = /oklch\(\s*([0-9.%degturnrad]+)(?:[\s,]+)([0-9.%degturnrad]+)(?:[\s,]+)([0-9.%degturnrad]+)(?:\s*[\/,]\s*([0-9.%]+))?\s*\)/gi;
+  return cssText.replace(oklchRegex, (match, l, c, h, a) => {
+    try {
+      return oklchToRgb(l, c, h, a);
+    } catch (e) {
+      return "rgb(255, 255, 255)";
+    }
+  });
+}
 
 export default function App() {
   // Course Selector states
@@ -56,6 +130,15 @@ export default function App() {
   const [previewMode, setPreviewMode] = useState<"pdf" | "png" | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+
+  // Dynamic summary calculations
+  const rawCourses = courseCatalog.filter(c => c.id !== "all-courses-integrated");
+  const totalCourses = rawCourses.length;
+  const completedCourses = rawCourses.filter(c => c.status === "완료");
+  const totalEvaluatedStudents = completedCourses.reduce((sum, c) => sum + c.evaluators, 0);
+  const averageSatisfactionScore = completedCourses.length > 0 
+    ? (completedCourses.reduce((sum, c) => sum + c.overallSatisfaction, 0) / completedCourses.length).toFixed(1)
+    : "0.0";
 
   // Dynamic dataset selection based on chosen portal course
   const currentData: CourseData = selectedCourseId && mappedCourseData[selectedCourseId] 
@@ -97,6 +180,30 @@ export default function App() {
         allowTaint: true,
         logging: false,
         backgroundColor: "#f8fafc", // matches bg-slate-50
+        onclone: (clonedDoc) => {
+          // Replace all oklch values inside all style elements in the clone
+          const styleElements = clonedDoc.getElementsByTagName("style");
+          for (let i = 0; i < styleElements.length; i++) {
+            const styleEl = styleElements[i];
+            if (styleEl.textContent) {
+              styleEl.textContent = replaceOklchInCss(styleEl.textContent);
+            }
+          }
+          // Clear any inline style values containing oklch
+          const allElements = clonedDoc.getElementsByTagName("*");
+          for (let i = 0; i < allElements.length; i++) {
+            const el = allElements[i] as HTMLElement;
+            if (el.style) {
+              for (let j = 0; j < el.style.length; j++) {
+                const key = el.style[j];
+                const val = el.style.getPropertyValue(key);
+                if (val && val.toLowerCase().includes("oklch")) {
+                  el.style.setProperty(key, replaceOklchInCss(val));
+                }
+              }
+            }
+          }
+        }
       });
 
       // Restore scroll position
@@ -184,6 +291,30 @@ export default function App() {
         allowTaint: true,
         logging: false,
         backgroundColor: "#f8fafc",
+        onclone: (clonedDoc) => {
+          // Replace all oklch values inside all style elements in the clone
+          const styleElements = clonedDoc.getElementsByTagName("style");
+          for (let i = 0; i < styleElements.length; i++) {
+            const styleEl = styleElements[i];
+            if (styleEl.textContent) {
+              styleEl.textContent = replaceOklchInCss(styleEl.textContent);
+            }
+          }
+          // Clear any inline style values containing oklch
+          const allElements = clonedDoc.getElementsByTagName("*");
+          for (let i = 0; i < allElements.length; i++) {
+            const el = allElements[i] as HTMLElement;
+            if (el.style) {
+              for (let j = 0; j < el.style.length; j++) {
+                const key = el.style[j];
+                const val = el.style.getPropertyValue(key);
+                if (val && val.toLowerCase().includes("oklch")) {
+                  el.style.setProperty(key, replaceOklchInCss(val));
+                }
+              }
+            }
+          }
+        }
       });
 
       window.scrollTo(scrollX, scrollY);
@@ -258,17 +389,17 @@ export default function App() {
                 <div className="flex gap-6 border-t border-slate-100 pt-4 md:pt-0 md:border-0 w-full md:w-auto">
                   <div className="text-left md:text-right">
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">총 관리 과정</p>
-                    <p className="text-lg font-black text-slate-800">3개</p>
+                    <p className="text-lg font-black text-slate-800">{totalCourses}개</p>
                   </div>
                   <div className="w-px bg-slate-200"></div>
                   <div className="text-left md:text-right">
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">분석 완료 수강생</p>
-                    <p className="text-lg font-black text-emerald-600">12명</p>
+                    <p className="text-lg font-black text-emerald-600">{totalEvaluatedStudents}명</p>
                   </div>
                   <div className="w-px bg-slate-200"></div>
                   <div className="text-left md:text-right">
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">평균 종합 만족지수</p>
-                    <p className="text-lg font-black text-indigo-600">⭐️ 9.1 / 10</p>
+                    <p className="text-lg font-black text-indigo-600">⭐️ {averageSatisfactionScore} / 10</p>
                   </div>
                 </div>
               </div>
@@ -303,51 +434,73 @@ export default function App() {
                       <div
                         key={course.id}
                         onClick={() => handleSelectCourse(course)}
-                        className={`group bg-white border border-slate-200/80 rounded-2xl p-6 transition-all duration-300 relative flex flex-col justify-between ${
-                          isCompleted
-                            ? "cursor-pointer hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/5 hover:-translate-y-1"
-                            : "opacity-75 cursor-not-allowed hover:bg-slate-100/50"
+                        className={`group rounded-2xl p-6 transition-all duration-300 relative flex flex-col justify-between ${
+                          course.id === "all-courses-integrated"
+                            ? "bg-gradient-to-br from-indigo-900 to-slate-900 border-2 border-indigo-500/80 hover:border-indigo-400 hover:shadow-2xl hover:shadow-indigo-500/20 hover:-translate-y-1 md:col-span-3 text-white cursor-pointer"
+                            : isCompleted
+                              ? "bg-white border border-slate-200/80 cursor-pointer hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/5 hover:-translate-y-1 text-slate-800"
+                              : "bg-slate-100/50 border border-slate-200 opacity-75 cursor-not-allowed text-slate-400"
                         }`}
                       >
                         <div className="space-y-4">
                           {/* Top row categories and Status badge */}
                           <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-bold text-slate-400 px-2 py-0.5 rounded-md bg-slate-100 uppercase tracking-wide">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ${
+                              course.id === "all-courses-integrated"
+                                ? "text-indigo-200 bg-indigo-950/40"
+                                : "text-slate-400 bg-slate-100"
+                            }`}>
                               {course.category}
                             </span>
-                            <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
-                              isCompleted
-                                ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
-                                : "bg-slate-100 border border-slate-200 text-slate-500"
-                            }`}>
-                              {course.status}
-                            </span>
+                            {course.id === "all-courses-integrated" ? (
+                              <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/50 text-indigo-200">
+                                통합 집계
+                              </span>
+                            ) : !isCompleted ? (
+                              <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-500">
+                                {course.status}
+                              </span>
+                            ) : null}
                           </div>
 
                           {/* Course Name */}
                           <div>
-                            <h3 className={`text-sm font-black tracking-tight leading-snug group-hover:text-indigo-600 transition-colors ${
-                              isCompleted ? "text-slate-900" : "text-slate-400"
+                            <h3 className={`text-sm font-black tracking-tight leading-snug group-hover:text-indigo-400 transition-colors ${
+                              course.id === "all-courses-integrated" ? "text-white text-base md:text-lg mb-1" : isCompleted ? "text-slate-900" : "text-slate-400"
                             }`}>
                               {course.courseName}
                             </h3>
-                            <p className="text-[11px] leading-relaxed text-slate-500 mt-2 font-normal">
+                            <p className={`text-[11px] leading-relaxed mt-2 font-normal ${
+                              course.id === "all-courses-integrated" ? "text-slate-300 text-xs" : "text-slate-500"
+                            }`}>
                               {course.description}
                             </p>
                           </div>
                         </div>
 
                         {/* Footer details row */}
-                        <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center text-xs">
+                        <div className={`mt-6 pt-4 border-t flex justify-between items-center text-xs ${
+                          course.id === "all-courses-integrated" ? "border-indigo-850" : "border-slate-100"
+                        }`}>
                           <div className="space-y-0.5 text-left">
-                            <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider block">교육 일정</span>
-                            <span className="font-semibold text-slate-700">{course.date}</span>
+                            <span className={`text-[9px] uppercase font-bold tracking-wider block ${
+                              course.id === "all-courses-integrated" ? "text-indigo-350" : "text-slate-400"
+                            }`}>교육 범위</span>
+                            <span className={`font-semibold ${
+                              course.id === "all-courses-integrated" ? "text-indigo-100" : "text-slate-700"
+                            }`}>{course.date}</span>
                           </div>
                           
                           {isCompleted ? (
-                            <div className="text-right space-y-0.5 bg-indigo-50/50 border border-indigo-100/30 p-1.5 px-3 rounded-xl">
-                              <span className="text-[9px] text-indigo-600 uppercase font-black tracking-wider block">분석지수</span>
-                              <span className="font-black text-indigo-700">⭐️ 9.1</span>
+                            <div className={`text-right space-y-0.5 p-1.5 px-3 rounded-xl ${
+                              course.id === "all-courses-integrated"
+                                ? "bg-indigo-500 border border-indigo-450 text-white shadow-sm shadow-indigo-500/30 font-black"
+                                : "bg-indigo-50/50 border border-indigo-100/30 text-indigo-700 font-extrabold"
+                            }`}>
+                              <span className={`text-[9px] uppercase font-black tracking-wider block ${
+                                course.id === "all-courses-integrated" ? "text-indigo-100" : "text-indigo-650"
+                              }`}>통합 분석지수</span>
+                              <span className="font-black text-xs md:text-sm">⭐️ {course.overallSatisfaction.toFixed(1)}</span>
                             </div>
                           ) : (
                             <div className="text-right flex items-center space-x-1 text-slate-400 font-bold text-[10px]">
@@ -358,7 +511,7 @@ export default function App() {
                         </div>
 
                         {/* Subtle interactive accent line for active catalog item */}
-                        {isCompleted && (
+                        {isCompleted && course.id !== "all-courses-integrated" && (
                           <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500 rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         )}
                       </div>
@@ -467,7 +620,7 @@ export default function App() {
                 />
                 <MetricCard
                   title="평가 응답률"
-                  value={`${((currentData.evaluators / currentData.participants) * 100).toFixed(0)} %`}
+                  value={`${((currentData.evaluators / (currentData.participants || 1)) * 100).toFixed(0)} %`}
                   subTitle="설문 참여 성실도 분석"
                   icon={<Percent className="w-4.5 h-4.5" />}
                   delay={0.15}
@@ -475,68 +628,53 @@ export default function App() {
                 <MetricCard
                   title="평균 만족도 지수"
                   value={`⭐️ ${currentData.overallSatisfaction.toFixed(1)} / 10`}
-                  subTitle={`5점 만점 기준 환산시 약 ${(currentData.satisfactionProgress).toFixed(2)}점`}
-                  icon={<Clock className="w-4.5 h-4.5 text-amber-500" />}
+                  subTitle={`5점 만점 환산: ${(currentData.overallSatisfaction / 2).toFixed(2)}점`}
+                  icon={<TrendingUp className="w-4.5 h-4.5" />}
                   delay={0.20}
                 />
               </section>
 
-              {/* Sleek Gradient AI 핵심 요약 (AI 3-Line Core Summarizer) */}
-              <section className="bg-gradient-to-br from-indigo-50 via-white to-indigo-50/10 border border-indigo-100 rounded-2xl p-6.5 shadow-sm">
-                <div className="relative z-10 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-2.5 w-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                    <h2 className="text-sm font-bold text-indigo-900 uppercase tracking-wider font-sans">
-                      AI 데이터 핵심 요약 보고
-                    </h2>
+              {/* AI Opinion Summary Section */}
+              <section className="bg-white border border-indigo-100 rounded-3xl p-8 shadow-[0_4px_30px_rgba(79,70,229,0.03)] relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/30 rounded-full blur-2xl -z-10 translate-x-12 -translate-y-12"></div>
+                
+                <div className="flex items-center gap-2.5 mb-6">
+                  <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600">
+                    <Sparkles className="w-4 h-4" />
                   </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">핵심 만족도 요약 보고</h3>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">AI-Generated Core Insights Summary</p>
+                  </div>
+                </div>
 
-                   {/* AI 3-Line Bullet summaries with Sleek underlines & highlights */}
-                  <div className="space-y-3.5 max-w-4xl pt-1">
-                    {currentData.courseName.includes("전시") ? (
-                      <>
-                        <div className="flex items-start gap-3">
-                          <span className="text-xs text-indigo-600 mt-0.5">•</span>
-                          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                            이번 교육은 전반적으로 <span className="font-extrabold text-indigo-750 underline decoration-indigo-300 underline-offset-4">10점 만점 기준 8.6점의 우수한 만족도</span>를 달성했으나, 노후 하드웨어 강의실 내부 환경과 관련된 개선 신호가 선연히 검출되었습니다.
-                          </p>
+                <div className="space-y-4.5">
+                  {currentData.aiSummary && currentData.aiSummary.length > 0 ? (
+                    currentData.aiSummary.map((bullet, idx) => {
+                      const isImprovement = bullet.includes("반면") || bullet.includes("다만") || bullet.includes("아쉬") || bullet.includes("불만") || bullet.includes("개선") || bullet.includes("온도") || bullet.includes("와이파이") || bullet.includes("시간") || bullet.includes("소음") || bullet.includes("광고") || bullet.includes("거부감");
+                      return (
+                        <div key={idx} className="flex items-start gap-3">
+                          <span className={`text-xs mt-0.5 ${isImprovement ? "text-rose-500" : "text-indigo-600"}`}>•</span>
+                          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: bullet }} />
                         </div>
-                        <div className="flex items-start gap-3">
-                          <span className="text-xs text-indigo-600 mt-0.5">•</span>
-                          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                            학업 전문성 면에서 <span className="bg-indigo-50 text-indigo-805 px-1.5 py-0.5 rounded font-bold">이형주 대표(평점 4.83)의 유려한 현장 지식 전달</span>은 격찬을 받았으나, 이미지 위주 실습에서 <span className="underline decoration-indigo-300">교안이 전면 흑백 인쇄본으로 배부</span>되어 시인 장막을 유발하는 병목이 감지되었습니다.
-                          </p>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <span className="text-xs text-rose-500 mt-0.5">•</span>
-                          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                            특히 전시회 도맡는 <span className="bg-rose-50 text-rose-700 font-bold px-1 rounded">중소기업 기준 만족도(극상)와 전문 기획 대기업(아쉬움) 간 편차</span>가 대조적이므로, 수준별 조별 네트워킹 시간을 보강하여 교류를 장려하라는 AI 오피니언을 도출했습니다.
-                          </p>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-start gap-3">
-                          <span className="text-xs text-indigo-600 mt-0.5">•</span>
-                          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                            이번 교육은 전반적으로 <span className="font-extrabold text-indigo-750 underline decoration-indigo-300 underline-offset-4">매우 높은 만족도 (10점 만점 기준 9.1점)</span>를 기록하며 긍정 평가가 지배적이었습니다.
-                          </p>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <span className="text-xs text-indigo-600 mt-0.5">•</span>
-                          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                            특히 세부 강사진의 풍부한 실무 경험, <span className="bg-indigo-50 text-indigo-805 px-1.5 py-0.5 rounded font-bold">박다솔 대표의 미국 진출 마케팅 분석</span> 및 <span className="bg-indigo-50 text-indigo-805 px-1.5 py-0.5 rounded font-bold">전용대 관세사의 노하우 전달성</span> 등 실전 중심 강의 방식에 대해 아주 높은 수강생 호응을 수렴했습니다.
-                          </p>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <span className="text-xs text-rose-500 mt-0.5">•</span>
-                          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                            반면 일부 특정 강의에서 교과 범위 대비 <span className="bg-rose-50 text-rose-700 font-bold px-1 rounded">시간 배분이 매우 부족했다는 지적</span>과 함께 원활한 질의 처리를 위한 버퍼 확보 보완 신호를 AI가 감지했습니다.
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                      );
+                    })
+                  ) : (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <span className="text-xs text-indigo-600 mt-0.5">•</span>
+                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                          이번 교육은 전반적으로 <span className="font-extrabold text-indigo-750 underline decoration-indigo-300 underline-offset-4">매우 높은 만족도 (10점 만점 기준 {currentData.overallSatisfaction.toFixed(1)}점)</span>를 기록하며 긍정 평가가 지배적이었습니다.
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-xs text-indigo-600 mt-0.5">•</span>
+                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                          특히 세부 강사진의 풍부한 실무 경험, 노하우 전달성 등 실전 중심 강의 방식에 대해 아주 높은 수강생 호응을 수렴했습니다.
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </section>
 
@@ -546,14 +684,14 @@ export default function App() {
               </section>
 
               {/* Category satisfaction circular chart & detailed item reviews */}
-              <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <section key={`chart-${selectedCourseId || "integrated"}`} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-12">
                   <SatisfactionChart courseData={currentData} />
                 </div>
               </section>
 
               {/* Opinion Section TOP 5 split */}
-              <section>
+              <section key={`opinions-${selectedCourseId || "integrated"}`}>
                 <OpinionTopSection
                   positiveOpinions={currentData.positiveOpinions}
                   improvementOpinions={currentData.improvementOpinions}
@@ -561,18 +699,18 @@ export default function App() {
               </section>
 
               {/* Instructor Specific satisfaction Comparison matrix */}
-              <section>
+              <section key={`instructors-${selectedCourseId || "integrated"}`}>
                 <InstructorComparison instructors={currentData.instructors} />
               </section>
 
               {/* Verbatim Click Lookup drilldown section */}
-              <section>
+              <section key={`verbatims-${selectedCourseId || "integrated"}`}>
                 <VerbatimViewer verbatimMapping={currentVerbatimMapping} />
               </section>
               </div>
 
-              {/* Robust Export Actions Area (PNG Image) */}
-              <section className="max-w-md mx-auto pt-6 space-y-4">
+              {/* Robust Export Actions Area (PDF & PNG Image) */}
+              <section className="max-w-xl mx-auto pt-6 space-y-4">
                 {exportError && (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
@@ -586,33 +724,57 @@ export default function App() {
                   </motion.div>
                 )}
 
-                <div className="flex justify-center">
-                  {/* PNG Image Download Button */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* PDF Download Button */}
                   <button
-                    onClick={handleDownloadPNG}
-                    disabled={isExportingPng}
-                    className={`w-full py-4 px-6 font-bold text-xs text-white rounded-xl transition-all shadow-lg flex items-center justify-center space-x-2 border cursor-pointer active:scale-98 ${
-                      isExportingPng
-                        ? "bg-indigo-500/80 border-indigo-400 cursor-wait shadow-indigo-200/30"
-                        : exportPngSuccess
+                    onClick={handleDownloadPDF}
+                    disabled={isExporting || isExportingPng}
+                    className={`py-3.5 px-5 font-bold text-xs text-white rounded-xl transition-all shadow-md flex items-center justify-center space-x-2 border cursor-pointer active:scale-98 ${
+                      isExporting
+                        ? "bg-indigo-500/80 border-indigo-400 cursor-wait"
+                        : exportSuccess
                           ? "bg-emerald-600 border-emerald-500 hover:bg-emerald-500 shadow-emerald-100"
-                          : "bg-indigo-600 border-indigo-600 hover:bg-indigo-700 hover:border-indigo-700 shadow-indigo-200/50"
+                          : "bg-indigo-600 border-indigo-600 hover:bg-indigo-700 hover:border-indigo-700 shadow-indigo-250/20"
                     }`}
                   >
-                    {isExportingPng ? (
+                    {isExporting ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>보고서 이미지(PNG) 파일용 렌더링 중...</span>
+                        <span>PDF 보고서 생성 중...</span>
                       </>
-                    ) : exportPngSuccess ? (
+                    ) : exportSuccess ? (
                       <>
                         <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-                        <span>보고서 이미지 저장 완료!</span>
+                        <span>PDF 다운로드 완료!</span>
                       </>
                     ) : (
                       <>
-                        <FileImage className="w-4 h-4 text-indigo-200" />
-                        <span>전체 분석 보고서 저장하기 (고화질 이미지)</span>
+                        <FileText className="w-4 h-4 text-indigo-200" />
+                        <span>만족도 분석 보고서 (PDF)</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* PNG Image Download Button */}
+                  <button
+                    onClick={handleDownloadPNG}
+                    disabled={isExporting || isExportingPng}
+                    className={`py-3.5 px-5 font-bold text-xs text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all shadow-sm flex items-center justify-center space-x-2 cursor-pointer active:scale-98`}
+                  >
+                    {isExportingPng ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-slate-500" />
+                        <span>이미지 변환 중...</span>
+                      </>
+                    ) : exportPngSuccess ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>이미지 저장 완료!</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileImage className="w-4 h-4 text-slate-400" />
+                        <span>고화질 이미지로 저장 (PNG)</span>
                       </>
                     )}
                   </button>

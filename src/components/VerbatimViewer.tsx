@@ -9,8 +9,13 @@ interface VerbatimViewerProps {
 
 export function VerbatimViewer({ verbatimMapping }: VerbatimViewerProps) {
   const keywords = Object.keys(verbatimMapping);
-  const [selectedKeyword, setSelectedKeyword] = useState<string>("시간 부족");
+  const [selectedKeywordState, setSelectedKeywordState] = useState<string>("");
   const [searchFilter, setSearchFilter] = useState<string>("");
+
+  // Safely fallback to the first available keyword if the selection is invalid
+  const selectedKeyword = keywords.includes(selectedKeywordState)
+    ? selectedKeywordState
+    : (keywords[0] || "");
 
   const activeMapping = verbatimMapping[selectedKeyword];
 
@@ -59,7 +64,7 @@ export function VerbatimViewer({ verbatimMapping }: VerbatimViewerProps) {
             <button
               key={kw}
               onClick={() => {
-                setSelectedKeyword(kw);
+                setSelectedKeywordState(kw);
                 setSearchFilter("");
               }}
               className={`p-2 py-1.5 px-3.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${

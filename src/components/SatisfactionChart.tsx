@@ -28,6 +28,17 @@ export function SatisfactionChart({ courseData }: SatisfactionChartProps) {
   // 4. Facilities average (Q4)
   const facilitiesAvg = courseData.stats.find(q => q.qId === "Q4")?.average || 4.8;
 
+  // Get room name dynamically
+  const getRoomName = () => {
+    if (courseData.courseName.includes("통합")) return "전체 강의장 통합";
+    if (courseData.courseName.includes("일본")) return "1층 강의실";
+    if (courseData.courseName.includes("인도네시아")) return "중강의실";
+    if (courseData.courseName.includes("세일즈")) return "오영교실";
+    if (courseData.courseName.includes("전시")) return "오영교실";
+    if (courseData.courseName.includes("첫 걸음")) return "중강의실";
+    return "중강의실"; // 미국시장 진출 과정 등 기본값
+  };
+
   const categories = [
     {
       id: "instructor",
@@ -71,30 +82,65 @@ export function SatisfactionChart({ courseData }: SatisfactionChartProps) {
     },
     {
       id: "facilities",
-      label: "시설 및 환경",
+      label: `시설 및 환경 (${getRoomName()})`,
       score: facilitiesAvg,
       max: 5,
       strokeColor: "#f43f5e",
       icon: <Home className="w-4 h-4 text-rose-500" />,
-      desc: "강의 강의실 환경 청결함, 소음 및 환기, 멀티미디어 기자재 설비",
+      desc: `배정 강의장: ${getRoomName()} | 강의실 내부 청결함, 소음 및 환기, 멀티미디어 기자재 시설 만족도`,
       items: [
-        { name: "교육장 환경 및 위생", score: facilitiesAvg },
+        { name: `${getRoomName()} 환경 및 위생`, score: facilitiesAvg },
       ]
     }
   ];
 
   // Tailored recommendation message
   const getSummaryMessage = () => {
+    if (courseData.courseName.includes("통합")) {
+      return (
+        <p className="text-[11px] text-slate-500 leading-normal mt-1 pl-6">
+          전체 6개 과정의 평균 강사 평점은 <span className="font-bold text-indigo-600">4.54</span>점으로 우수한 강의력과 충만한 실무 지식이 고평가되었습니다. 한편, 에어컨 가동에 수반한 <span className="font-semibold text-rose-600">오영교실의 실내 온도(추위)</span> 편차 및 <span className="font-semibold text-rose-600">중강의실 무선 네트워크(와이파이)</span> 수강 편의 불안정이 핵심 피드백으로 감지되어, 강의 환경 행정 만족도(<span className="font-medium text-rose-500">4.23</span>) 향상을 위한 전인격적 하드웨어 시설 개선이 권고됩니다.
+        </p>
+      );
+    }
     if (courseData.courseName.includes("전시")) {
       return (
         <p className="text-[11px] text-slate-500 leading-normal mt-1 pl-6">
-          이형주 대표님(<span className="font-bold text-indigo-600">4.83</span>) 등 강사진 전문 호응도는 극대화되었으나, 노후 기자재 불만으로 인한 <span className="font-medium text-rose-500">강의실 환경 만정도(4.0)</span> 개선 및 대기업 수강생을 위한 <span className="font-medium text-amber-500">네트워킹 실습 공간/시간 버퍼</span> 수반 보완책 설계가 요구되는 상태입니다.
+          이형주 대표님(<span className="font-bold text-indigo-600">4.83</span>) 등 강사 전문 호응도는 극대화되었으나, <span className="font-semibold text-rose-600">오영교실</span>의 노후 기자재(테이블/콘센트 부족) 불만으로 인한 <span className="font-medium text-rose-500">강의실 시설 만족도(4.0)</span> 개선 및 대기업 수강생을 위한 <span className="font-medium text-amber-500">네트워킹 실습 공간/시간 버퍼</span> 수반 보완책 설계가 요구되는 상태입니다.
+        </p>
+      );
+    }
+    if (courseData.courseName.includes("첫 걸음")) {
+      return (
+        <p className="text-[11px] text-slate-500 leading-normal mt-1 pl-6">
+          최철식 위원님(<span className="font-bold text-indigo-600">4.68</span>) 등 강사진의 깊이 있는 실전 노하우 만족도는 우수했지만, <span className="font-semibold text-rose-600">중강의실</span>의 교실 인프라(와이파이 장애 및 경로 안내) 및 행정 안내 환경 만족도(<span className="font-medium text-rose-500">4.3</span>) 보강이 권고됩니다.
+        </p>
+      );
+    }
+    if (courseData.courseName.includes("세일즈")) {
+      return (
+        <p className="text-[11px] text-slate-500 leading-normal mt-1 pl-6">
+          김동영 대표님(<span className="font-bold text-indigo-600">4.88</span>) 및 정희준 교수님(<span className="font-bold text-indigo-600">4.71</span>) 등의 세일즈 실전 분석 전달력은 압도했으나, 에어컨 가동에 수반한 <span className="font-semibold text-rose-600">오영교실</span>의 추운 온도 저하 지수(<span className="font-medium text-rose-500">4.29</span>) 개선 및 해외거래선 단원 육성 피드백이 촉구됩니다.
+        </p>
+      );
+    }
+    if (courseData.courseName.includes("인도네시아")) {
+      return (
+        <p className="text-[11px] text-slate-500 leading-normal mt-1 pl-6">
+          이건동 대표님(<span className="font-bold text-indigo-600">4.80</span>) 등의 트레이딩 전략 전수는 호평을 수렴했으나, 배정된 <span className="font-semibold text-rose-600">중강의실</span> 내부의 일시 소음(핸드폰/기침 에티켓 지연)과 다과 메뉴(샌드위치 단일) 다경화 요청 만족도(<span className="font-medium text-rose-500">3.90</span>) 지표 해결책이 연동 처방되어야 합니다.
+        </p>
+      );
+    }
+    if (courseData.courseName.includes("일본")) {
+      return (
+        <p className="text-[11px] text-slate-500 leading-normal mt-1 pl-6">
+          양우진 부대표님(<span className="font-bold text-indigo-600">4.40</span>) 등 비즈니스 관습 공세는 호조를 띄었으나, 자사 전공 분야 불일치 및 강사에 대한 사설 회사 유치 목적 상업용 광고 수집 행태에 따르는 과도한 만족도(<span className="font-medium text-rose-500">7.5 / 10</span>) 하강을 겪어 강사진 정교 오리엔테이션이 중요 보충안입니다.
         </p>
       );
     }
     return (
-      <p className="text-[11px] text-slate-500 leading-normal mt-1 pl-6">
-        <span className="font-medium text-rose-500">시설(4.8)</span>과 <span className="font-medium text-indigo-600">강사 전문성(4.78)</span> 항목이 최상위를 달성했으나, 상대적으로 수강생 시간 조절 애로로 인해 <span className="font-medium text-amber-500">교육별 강의 시간 배분(4.4)</span>에 대한 고도화 조정이 요구됩니다.
+      <p className="text-[11px] text-slate-400 leading-normal mt-1 pl-6">
+        박다솔 대표님(<span className="font-bold text-indigo-600">4.83</span>) 등 강사 전문성과 교육장 시설만인 <span className="font-semibold text-indigo-600">중강의실</span> 환경 만족도(<span className="font-medium text-indigo-600">4.8</span>)는 매우 유려하고 뛰어난 지표를 수렴하였습니다.
       </p>
     );
   };

@@ -39,20 +39,31 @@ import {
 
 // Helper to convert oklch string definitions to standard rgb/rgba values for compatibility with html2canvas CSS parsing
 function oklchToRgb(lVal: string, cVal: string, hVal: string, aVal: string | undefined): string {
+  // If values are CSS variables, return a fallback color
+  if (lVal.includes("var") || cVal.includes("var") || hVal.includes("var")) {
+    if (lVal.toLowerCase().includes("indigo") || cVal.toLowerCase().includes("indigo") || hVal.toLowerCase().includes("indigo")) {
+      return "rgb(99, 102, 241)"; // Indigo-500 fallback
+    }
+    return "rgb(248, 250, 252)"; // Slate-50 fallback
+  }
+
   // Parse Lightness
   let L = parseFloat(lVal);
+  if (isNaN(L)) L = 0.5;
   if (lVal.includes('%')) {
     L /= 100;
   }
   
   // Parse Chroma
   let C = parseFloat(cVal);
+  if (isNaN(C)) C = 0.1;
   if (cVal.includes('%')) {
     C /= 100;
   }
   
   // Parse Hue
   let H = parseFloat(hVal);
+  if (isNaN(H)) H = 0;
   if (hVal.toLowerCase().includes('rad')) {
     H = parseFloat(hVal.replace(/rad/i, '')) * (180 / Math.PI);
   } else if (hVal.toLowerCase().includes('turn')) {
@@ -60,6 +71,7 @@ function oklchToRgb(lVal: string, cVal: string, hVal: string, aVal: string | und
   } else if (hVal.toLowerCase().includes('deg')) {
     H = parseFloat(hVal.replace(/deg/i, ''));
   }
+  if (isNaN(H)) H = 0;
   
   const H_rad = H * (Math.PI / 180);
   
@@ -87,7 +99,11 @@ function oklchToRgb(lVal: string, cVal: string, hVal: string, aVal: string | und
   const b = Math.max(0, Math.min(255, Math.round(gamma(b_linear) * 255)));
   
   if (aVal !== undefined) {
+    if (aVal.includes("var")) {
+      return `rgba(${r}, ${g}, ${b}, 1)`;
+    }
     let alpha = parseFloat(aVal);
+    if (isNaN(alpha)) alpha = 1;
     if (aVal.includes('%')) {
       alpha /= 100;
     }
@@ -101,14 +117,70 @@ function oklchToRgb(lVal: string, cVal: string, hVal: string, aVal: string | und
 function replaceOklchInCss(cssText: string): string {
   if (!cssText.toLowerCase().includes("oklch")) return cssText;
   
-  const oklchRegex = /oklch\(\s*([0-9.%degturnrad]+)(?:[\s,]+)([0-9.%degturnrad]+)(?:[\s,]+)([0-9.%degturnrad]+)(?:\s*[\/,]\s*([0-9.%]+))?\s*\)/gi;
-  return cssText.replace(oklchRegex, (match, l, c, h, a) => {
+  // Capture oklch pattern with nested parentheses support
+  const oklchRegex = /oklch\((?:[^()]+|\([^()]*\))*\)/gi;
+  return cssText.replace(oklchRegex, (match) => {
     try {
-      return oklchToRgb(l, c, h, a);
+      const inner = match.substring(6, match.length - 1).trim();
+      let parts: string[] = [];
+      let alpha: string | undefined = undefined;
+      
+      if (inner.includes("/")) {
+        const [colorPart, alphaPart] = inner.split("/");
+        alpha = alphaPart.trim();
+        parts = colorPart.trim().split(/[\s,]+/);
+      } else {
+        parts = inner.split(/[\s,]+/);
+        if (parts.length >= 4) {
+          alpha = parts[3];
+          parts = parts.slice(0, 3);
+        }
+      }
+      
+      if (parts.length >= 3) {
+        return oklchToRgb(parts[0], parts[1], parts[2], alpha);
+      }
+      return "rgb(255, 255, 255)";
     } catch (e) {
       return "rgb(255, 255, 255)";
     }
   });
+}
+
+// Global flag and function to dynamically load links and clean oklch so html2canvas never crashes on stylesheet fetching
+let stylesAreCleaned = false;
+async function ensureStylesAreCleaned() {
+  if (stylesAreCleaned) return;
+  
+  const links = Array.from(document.querySelectorAll('link[rel="stylesheet"]')) as HTMLLinkElement[];
+  for (const link of links) {
+    try {
+      const response = await fetch(link.href);
+      if (response.ok) {
+        let cssText = await response.text();
+        cssText = replaceOklchInCss(cssText);
+        
+        const styleEl = document.createElement("style");
+        styleEl.textContent = cssText;
+        document.head.appendChild(styleEl);
+        
+        link.disabled = true;
+        link.parentNode?.removeChild(link);
+      }
+    } catch (e) {
+      console.error("Failed to clean stylesheet:", link.href, e);
+    }
+  }
+  
+  const styleElements = document.getElementsByTagName("style");
+  for (let i = 0; i < styleElements.length; i++) {
+    const styleEl = styleElements[i];
+    if (styleEl.textContent && styleEl.textContent.toLowerCase().includes("oklch")) {
+      styleEl.textContent = replaceOklchInCss(styleEl.textContent);
+    }
+  }
+  
+  stylesAreCleaned = true;
 }
 
 export default function App() {
@@ -159,7 +231,43 @@ export default function App() {
     const scrollX = window.scrollX;
     const scrollY = window.scrollY;
     
+    const originalGetComputedStyle = window.getComputedStyle;
+    let computedStyleOverridden = false;
+    
     try {
+      // Clean all style sheets (dynamic link styles and style tags)
+      await ensureStylesAreCleaned();
+
+      // Override getComputedStyle to dynamically replace oklch results at runtime
+      window.getComputedStyle = function (elt, pseudoElt) {
+        const style = originalGetComputedStyle(elt, pseudoElt);
+        return new Proxy(style, {
+          get(target, prop, receiver) {
+            const val = Reflect.get(target, prop, receiver);
+            if (typeof val === "string") {
+              if (val.toLowerCase().includes("oklch")) {
+                return replaceOklchInCss(val);
+              }
+              return val;
+            }
+            if (typeof val === "function") {
+              if (prop === "getPropertyValue") {
+                return function(propertyName: string) {
+                  const originalVal = target.getPropertyValue(propertyName);
+                  if (originalVal && originalVal.toLowerCase().includes("oklch")) {
+                    return replaceOklchInCss(originalVal);
+                  }
+                  return originalVal;
+                };
+              }
+              return val.bind(target);
+            }
+            return val;
+          }
+        });
+      };
+      computedStyleOverridden = true;
+
       // Find the dashboard element
       const element = document.getElementById("course-dashboard-content");
       if (!element) {
@@ -181,6 +289,36 @@ export default function App() {
         logging: false,
         backgroundColor: "#f8fafc", // matches bg-slate-50
         onclone: (clonedDoc) => {
+          if (clonedDoc.defaultView) {
+            const originalClonedGetComputedStyle = clonedDoc.defaultView.getComputedStyle;
+            clonedDoc.defaultView.getComputedStyle = function (elt, pseudoElt) {
+              const style = originalClonedGetComputedStyle(elt, pseudoElt);
+              return new Proxy(style, {
+                get(target, prop, receiver) {
+                  const val = Reflect.get(target, prop, receiver);
+                  if (typeof val === "string") {
+                    if (val.toLowerCase().includes("oklch")) {
+                      return replaceOklchInCss(val);
+                    }
+                    return val;
+                  }
+                  if (typeof val === "function") {
+                    if (prop === "getPropertyValue") {
+                      return function(propertyName: string) {
+                        const originalVal = target.getPropertyValue(propertyName);
+                        if (originalVal && originalVal.toLowerCase().includes("oklch")) {
+                          return replaceOklchInCss(originalVal);
+                        }
+                        return originalVal;
+                      };
+                    }
+                    return val.bind(target);
+                  }
+                  return val;
+                }
+              });
+            };
+          }
           // Replace all oklch values inside all style elements in the clone
           const styleElements = clonedDoc.getElementsByTagName("style");
           for (let i = 0; i < styleElements.length; i++) {
@@ -262,6 +400,10 @@ export default function App() {
       window.scrollTo(scrollX, scrollY);
       setIsExporting(false);
       setExportError(`PDF 다운로드 도중 브라우저가 처리를 거부했거나 제한했습니다. (에러: ${error?.message || error}). 아래 '이미지(PNG) 파일로 저장' 버튼을 이용해주시면 100% 안전하게 저장됩니다!`);
+    } finally {
+      if (computedStyleOverridden) {
+        window.getComputedStyle = originalGetComputedStyle;
+      }
     }
   };
 
@@ -274,7 +416,43 @@ export default function App() {
     const scrollX = window.scrollX;
     const scrollY = window.scrollY;
     
+    const originalGetComputedStyle = window.getComputedStyle;
+    let computedStyleOverridden = false;
+    
     try {
+      // Clean all style sheets (dynamic link styles and style tags)
+      await ensureStylesAreCleaned();
+
+      // Override getComputedStyle to dynamically replace oklch results at runtime
+      window.getComputedStyle = function (elt, pseudoElt) {
+        const style = originalGetComputedStyle(elt, pseudoElt);
+        return new Proxy(style, {
+          get(target, prop, receiver) {
+            const val = Reflect.get(target, prop, receiver);
+            if (typeof val === "string") {
+              if (val.toLowerCase().includes("oklch")) {
+                return replaceOklchInCss(val);
+              }
+              return val;
+            }
+            if (typeof val === "function") {
+              if (prop === "getPropertyValue") {
+                return function(propertyName: string) {
+                  const originalVal = target.getPropertyValue(propertyName);
+                  if (originalVal && originalVal.toLowerCase().includes("oklch")) {
+                    return replaceOklchInCss(originalVal);
+                  }
+                  return originalVal;
+                };
+              }
+              return val.bind(target);
+            }
+            return val;
+          }
+        });
+      };
+      computedStyleOverridden = true;
+
       const element = document.getElementById("course-dashboard-content");
       if (!element) {
         setIsExportingPng(false);
@@ -292,6 +470,36 @@ export default function App() {
         logging: false,
         backgroundColor: "#f8fafc",
         onclone: (clonedDoc) => {
+          if (clonedDoc.defaultView) {
+            const originalClonedGetComputedStyle = clonedDoc.defaultView.getComputedStyle;
+            clonedDoc.defaultView.getComputedStyle = function (elt, pseudoElt) {
+              const style = originalClonedGetComputedStyle(elt, pseudoElt);
+              return new Proxy(style, {
+                get(target, prop, receiver) {
+                  const val = Reflect.get(target, prop, receiver);
+                  if (typeof val === "string") {
+                    if (val.toLowerCase().includes("oklch")) {
+                      return replaceOklchInCss(val);
+                    }
+                    return val;
+                  }
+                  if (typeof val === "function") {
+                    if (prop === "getPropertyValue") {
+                      return function(propertyName: string) {
+                        const originalVal = target.getPropertyValue(propertyName);
+                        if (originalVal && originalVal.toLowerCase().includes("oklch")) {
+                          return replaceOklchInCss(originalVal);
+                        }
+                        return originalVal;
+                      };
+                    }
+                    return val.bind(target);
+                  }
+                  return val;
+                }
+              });
+            };
+          }
           // Replace all oklch values inside all style elements in the clone
           const styleElements = clonedDoc.getElementsByTagName("style");
           for (let i = 0; i < styleElements.length; i++) {
@@ -341,6 +549,10 @@ export default function App() {
       window.scrollTo(scrollX, scrollY);
       setIsExportingPng(false);
       setExportError(`이미지 다운로드 도중 오류가 발생했습니다: ${error?.message || error}`);
+    } finally {
+      if (computedStyleOverridden) {
+        window.getComputedStyle = originalGetComputedStyle;
+      }
     }
   };
 

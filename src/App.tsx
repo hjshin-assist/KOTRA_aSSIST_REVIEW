@@ -177,7 +177,7 @@ export default function App() {
       const canvas = await html2canvas(element, {
         scale: 1.5, // 1.5 is extremely stable, fast, and high quality
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         logging: false,
         backgroundColor: "#f8fafc", // matches bg-slate-50
         onclone: (clonedDoc) => {
@@ -288,7 +288,7 @@ export default function App() {
       const canvas = await html2canvas(element, {
         scale: 1.5,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         logging: false,
         backgroundColor: "#f8fafc",
         onclone: (clonedDoc) => {

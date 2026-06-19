@@ -39,6 +39,8 @@ export function SatisfactionChart({ courseData }: SatisfactionChartProps) {
     return "중강의실"; // 미국시장 진출 과정 등 기본값
   };
 
+  const isIntegrated = courseData.courseName.includes("통합");
+
   const categories = [
     {
       id: "instructor",
@@ -80,18 +82,62 @@ export function SatisfactionChart({ courseData }: SatisfactionChartProps) {
         { name: "교육 운영 만족", score: q6 },
       ]
     },
-    {
-      id: "facilities",
-      label: `시설 및 환경 (${getRoomName()})`,
-      score: facilitiesAvg,
-      max: 5,
-      strokeColor: "#f43f5e",
-      icon: <Home className="w-4 h-4 text-rose-500" />,
-      desc: `배정 강의장: ${getRoomName()} | 강의실 내부 청결함, 소음 및 환기, 멀티미디어 기자재 시설 만족도`,
-      items: [
-        { name: `${getRoomName()} 환경 및 위생`, score: facilitiesAvg },
-      ]
-    }
+    ...(isIntegrated
+      ? [
+          {
+            id: "facilities_ohyoung",
+            label: "시설 및 환경 (오영교실)",
+            score: 4.14,
+            max: 5,
+            strokeColor: "#f43f5e",
+            icon: <Home className="w-4 h-4 text-rose-500" />,
+            desc: "오영교실 (해외전시 마케팅, 글로벌 세일즈 특화 배정) | 내부 환경 청결, 온도 편차 및 멀티미디어 기자재 시설 만족도",
+            items: [
+              { name: "해외전시 마케팅 (4.0)", score: 4.0 },
+              { name: "글로벌 세일즈 (4.29)", score: 4.29 },
+            ]
+          },
+          {
+            id: "facilities_medium",
+            label: "시설 및 환경 (중강의실)",
+            score: 4.32,
+            max: 5,
+            strokeColor: "#ec4899",
+            icon: <Home className="w-4 h-4 text-pink-500" />,
+            desc: "중강의실 (인도네시아 진출, 수출 첫 걸음, 미국시장 진출 배정) | 내부 청결 소음, 무선 와이파이 네트워크 만족도",
+            items: [
+              { name: "인도네시아 진출 (3.9)", score: 3.9 },
+              { name: "수출 첫 걸음 (4.3)", score: 4.3 },
+              { name: "미국시장 진출 (4.8)", score: 4.8 },
+            ]
+          },
+          {
+            id: "facilities_1st",
+            label: "시설 및 환경 (1층 강의실)",
+            score: 4.10,
+            max: 5,
+            strokeColor: "#3b82f6",
+            icon: <Home className="w-4 h-4 text-blue-500" />,
+            desc: "1층 강의실 (일본 시장 진출 배정) | 내부 환경 청결함 및 교안 흑백 시인성 만족도",
+            items: [
+              { name: "일본 시장 진출 (4.1)", score: 4.1 },
+            ]
+          }
+        ]
+      : [
+          {
+            id: "facilities",
+            label: `시설 및 환경 (${getRoomName()})`,
+            score: facilitiesAvg,
+            max: 5,
+            strokeColor: "#f43f5e",
+            icon: <Home className="w-4 h-4 text-rose-500" />,
+            desc: `배정 강의장: ${getRoomName()} | 강의실 내부 청결함, 소음 및 환기, 멀티미디어 기자재 시설 만족도`,
+            items: [
+              { name: `${getRoomName()} 환경 및 위생`, score: facilitiesAvg },
+            ]
+          }
+        ])
   ];
 
   // Tailored recommendation message
@@ -99,7 +145,7 @@ export function SatisfactionChart({ courseData }: SatisfactionChartProps) {
     if (courseData.courseName.includes("통합")) {
       return (
         <p className="text-[11px] text-slate-500 leading-normal mt-1 pl-6">
-          전체 6개 과정의 평균 강사 평점은 <span className="font-bold text-indigo-600">4.54</span>점으로 우수한 강의력과 충만한 실무 지식이 고평가되었습니다. 한편, 에어컨 가동에 수반한 <span className="font-semibold text-rose-600">오영교실의 실내 온도(추위)</span> 편차 및 <span className="font-semibold text-rose-600">중강의실 무선 네트워크(와이파이)</span> 수강 편의 불안정이 핵심 피드백으로 감지되어, 강의 환경 행정 만족도(<span className="font-medium text-rose-500">4.23</span>) 향상을 위한 전인격적 하드웨어 시설 개선이 권고됩니다.
+          전체 6개 과정의 평균 강사 평점은 <span className="font-bold text-indigo-600">4.54</span>점으로 우수한 강의력과 충만한 실무 지식이 고평가되었습니다. 한편, 시설 부문에서는 강의장별 대조를 이뤄 <span className="font-semibold text-rose-600">오영교실(평균 4.14점)</span>의 실내 추운 온도 편차 및 테이블 노후화 개선 의견과, <span className="font-semibold text-rose-600">중강의실(평균 4.32점)</span>의 간헐적인 무선 와이파이 연결 장해가 핵심 개선 신호로 도출되어 정비 기준 정립이 필요합니다.
         </p>
       );
     }
